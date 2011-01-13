@@ -1,0 +1,31 @@
+planks: persistent lisp, mumble mumble mumble mumble
+
+* Features 
+  - 100% portable common lisp
+    uses bordeaux threads!
+  - functional, append-only index
+  - persistent CLOS objects
+  - thread safe
+  - multi-value concurrency control 
+  - easy to install and to use
+
+* Download and Install
+
+** Release tarballs
+  
+  http://common-lisp.net/project/planks/planks-release.tar.gz
+  
+** Version Control
+
+   planks is available via git 
+
+
+
+     
+   
+
+
+  
+* Examples
+
+** Basic key/value store
