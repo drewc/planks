@@ -98,6 +98,8 @@ of keys per btree node.")
     (PROG1 NEW
       (SETF (SLOT-VALUE NEW 'KEY<) (SLOT-VALUE btree 'KEY<)
             (SLOT-VALUE NEW 'KEY=) (SLOT-VALUE btree 'KEY=)
+	    (SLOT-VALUE NEW 'KEY-KEY) (SLOT-VALUE btree 'KEY-KEY)
+	    (SLOT-VALUE NEW 'VALUE-KEY) (SLOT-VALUE btree 'VALUE-KEY)	    
             (SLOT-VALUE NEW 'VALUE=) (SLOT-VALUE btree 'VALUE=)
             (SLOT-VALUE NEW 'NODE-CLASS) (SLOT-VALUE btree 'NODE-CLASS)
             (SLOT-VALUE NEW 'MAX-NODE-SIZE) (SLOT-VALUE btree 'MAX-NODE-SIZE)
@@ -301,7 +303,7 @@ otherwise, DEFAULT-VALUE is returned."))
       (if errorp
           ;; DO: Provide restarts here (USE-VALUE, STORE-VALUE, ...).
           (error 'btree-search-error :btree btree :key key)
-        default-value)
+	  default-value)
     '()))
 
 ;;
