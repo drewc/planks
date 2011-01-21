@@ -23,7 +23,12 @@
    #:btree-error-btree #:btree-error-key #:btree-error-value
    #:make-btree
    #:open-btree
-   #:find-btree))
+   #:find-btree
+   #:close-btree
+   #:multi-btree
+   #:add-multi-btree
+   #:add-function-btree
+   #:find-function-btree))
 
 (in-package :planks.btree)
 

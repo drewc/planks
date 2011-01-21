@@ -109,21 +109,23 @@ of keys per btree node.")
             (SLOT-VALUE NEW 'ROOT) root))))
 
 (defmethod update-btree (btree &key key value)
-  (let ((root (btree-root btree)))
-    (%update-btree 
-     btree 
-     :root (cond 
-	     ((not root) 
-	      (make-root-node btree key value))
-	     ((node-almost-full-p btree root)
-	      (update-node 
-	       root :index (split-binding-node 
-			    btree  root key value nil)))
-	     (t	 
-	      (update-node 
-	       root :index (update-index-for-insert 
-			    btree (btree-node-index root) 
-			    key value (btree-node-leaf-p root))))))))
+  (if (and (null key) (null value))
+      (%update-btree btree)
+      (let ((root (btree-root btree)))
+	(%update-btree 
+	 btree 
+	 :root (cond 
+		 ((not root) 
+		  (make-root-node btree key value))
+		 ((node-almost-full-p btree root)
+		  (update-node 
+		   root :index (split-binding-node 
+				btree  root key value nil)))
+		 (t	 
+		  (update-node 
+		   root :index (update-index-for-insert 
+				btree (btree-node-index root) 
+				key value (btree-node-leaf-p root)))))))))
 
 (defclass btree-node ()
   ((index :initarg :index
@@ -283,7 +285,7 @@ child node will be KEY< the child node's key in the parent node.")
 ;; Search
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defgeneric btree-search (btree key &key errorp default-value)
+(defgeneric btree-search (btree key &key errorp default-value &allow-other-keys)
   (:documentation "Returns the value (or list of values, for btrees
 that don't have unique keys) corresponding to KEY.  If the btree has
 non-unique keys and no value is found, the empty list is returned.  If

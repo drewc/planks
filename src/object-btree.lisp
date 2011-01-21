@@ -7,6 +7,8 @@
 (defclass object-storage-footer (btree-footer)
   ((next-id :accessor btree-footer-next-id :initform 0)))
 
+(defgeneric make-btree-footer (btree old-footer &key &allow-other-keys))
+
 (defmethod make-btree-footer :around ((btree object-storage-btree) old-footer &key action)
   (let ((footer (call-next-method)))
     (prog1 footer 
@@ -22,7 +24,6 @@
 	(apply #'call-next-method btree (list* :value value (alexandria:remove-from-plist args :value-thunk))))
       (call-next-method)))
     
-
 (defclass nested-btree (file-btree)
   ((pathname :initarg :btree))
   (:metaclass btree-class))

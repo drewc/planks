@@ -7,6 +7,7 @@
 			     (:file "btree")
 			     (:file "map-btree")
 			     (:file "file-btree")
+			     (:file "view")
 			     (:file "btree-class")
 			     (:file "object-btree")
 			     (:file "persistent-objects"))		

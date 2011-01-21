@@ -39,6 +39,12 @@
 (defmethod update-node-for-insert (btree (pointer pointer) binding-key key value leaf-p)
   (call-next-method btree (maybe-follow-pointer pointer) binding-key key value leaf-p))
 
+(defmethod btree-node-min-depth ((node pointer))
+  (btree-node-min-depth (maybe-follow-pointer node)))
+
+(defmethod btree-node-max-depth ((node pointer))
+  (btree-node-max-depth (maybe-follow-pointer node)))
+
 (defmethod largest-key-in-node ((pointer pointer))
   (largest-key-in-node (maybe-follow-pointer pointer)))
 
@@ -86,7 +92,7 @@
     (let ((new-btree (call-next-method)))
       (prog1 new-btree 
 	(setf (btree-root new-btree) 
-	      (btree-node-self-pointer (btree-root new-btree)))
+	      (and (btree-root new-btree) (btree-node-self-pointer (btree-root new-btree))))
 	(setf (btree-pathname new-btree)
 	      (btree-pathname btree))))))
 
@@ -94,7 +100,6 @@
   ((footer :accessor btree-file-footer)
    (footer-class :accessor btree-file-footer-class :initarg :footer-class :initform 'btree-footer)
    (lock :accessor btree-lock)))
-
 
 (#+sbcl sb-ext:defglobal #-sbcl defvar =big-btree-lock= (bordeaux-threads:make-lock "Big lock for btrees"))
 
@@ -158,7 +163,6 @@
 	  (when (equalp checksum (object-checksum footer))
 	    footer))))))
 
-
 (defun make-btree-lock (btree)
    (bordeaux-threads:make-lock (format nil "BTREE lock for ~A" (btree-pathname btree))))
 
@@ -210,9 +214,10 @@
 (defun close-btree (path)
   (bordeaux-threads:with-lock-held (=big-btree-lock=)
     (remhash path *btrees*)))
-
-
-(defmethod update-btree :around ((btree single-file-btree) &rest args &key (action :insert) &allow-other-keys)
+  
+(defmethod update-btree :around ((btree single-file-btree) &rest args 
+				 &key  
+				 &allow-other-keys)
   (let* ((current-btree (find-btree (btree-pathname btree)))
 	 (lock (btree-lock btree)))
     (if (equal (root-node-file-position (btree-file-footer btree))
@@ -223,19 +228,18 @@
 					  :if-exists :overwrite
 					  :direction :output
 					  :element-type '(unsigned-byte 8))
-	    (let ((btree (call-next-method)))
-	       
+	    (let ((btree (call-next-method)))	       
 	      (prog1 btree
 		(setf (btree-file-footer-class btree) (btree-file-footer-class current-btree))
-		(let ((footer (make-btree-footer 
-			       btree (btree-file-footer current-btree) 
-			       :action action)))
+		(let ((footer  (apply #'make-btree-footer 
+				      btree (btree-file-footer current-btree) 
+				      args)))
 		  (setf (btree-file-footer-address footer) (file-position *btree-stream*))
 		  (write-file-footer *btree-stream* footer)
 		  (setf (btree-file-footer btree) footer)
 		  (setf (btree-lock btree) lock)
 		  (setf (gethash (btree-pathname btree) *btrees*) btree))))))
-	  (apply #'update-btree current-btree args))))
+	(apply #'update-btree current-btree args))))
       
 
 

@@ -25,8 +25,11 @@
                              min max include-min include-max order)))
 
 (defgeneric map-btree-keys-for-node (btree node function
-                                     min max include-min include-max
-                                     order)
+                                     min max include-min include-max order)
+  (:method (btree (node null) function
+            min max include-min include-max
+            order)
+    nil)                         
   (:method (btree node function
             min max include-min include-max
             order)
