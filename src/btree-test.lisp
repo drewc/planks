@@ -72,6 +72,17 @@
   (map-btree (find-function-btree bt 'length-of-value) 
 	     (lambda (k v)
 	       (assert (equal (length k) v)))))
+
+(defun test-heap-btree ()
+  (make-btree *path*
+	      :if-exists :supersede
+	      :max-node-size 10
+	      :class 'heap-btree)
+  (symbol-macrolet ((bt (find-btree *path*)))
+    (loop for n to 115000 do  (btree-insert bt n n))
+    bt))
+    
+  
 	       
 (progn 
   (test-file-btree-insert)

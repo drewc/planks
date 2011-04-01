@@ -6,16 +6,12 @@
 
 (defmethod map-btree ((btree btree) function
                       &key min max include-min include-max (order :ascending))
-  (let ((fn (if (btree-unique-keys-p btree)
-                function
-              (lambda (key set)
-		(error "not yet")))))
-    (map-btree-keys btree fn
+    (map-btree-keys btree function
                     :min min
                     :max max
                     :include-min include-min
                     :include-max include-max
-                    :order order)))
+                    :order order))
 
 
 (defmethod map-btree-keys ((btree btree) function

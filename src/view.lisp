@@ -15,13 +15,23 @@
   ()
   (:default-initargs :footer-class 'multi-btree-file-footer))
 
+(defvar *current-footer*)
+(defvar *current-btree*)
+
+(defun current-footer ()
+  *current-footer*)
+
+(defun current-btree ()
+  *current-btree*)
 
 (defmethod make-btree-footer :around ((btree multi-btree) old-footer 
 				      &key key value action function-name function-index-initargs 
 				      &allow-other-keys)
   (let* ((new-footer (call-next-method))
 	 (btrees (and old-footer 
-		      (slot-value old-footer 'btrees) (remove function-name (slot-value old-footer 'btrees) :key 'btree-function-name))))
+		      (slot-value old-footer 'btrees) (remove function-name (slot-value old-footer 'btrees) :key 'btree-function-name)))
+	 (*current-btree* btree)
+	 (*current-footer* new-footer))
     (if (eql action :add-function)            
 	(let ((function-btree (apply #'make-instance 'function-btree 
 				     :pathname (btree-pathname btree) 
@@ -57,6 +67,7 @@
 			  :key #'btree-function-name)
 		    key :errorp errorp :default-value default-value)
       (call-next-method)))
+
+
   
-    
-	
+  

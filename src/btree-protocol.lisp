@@ -28,7 +28,8 @@
    #:multi-btree
    #:add-multi-btree
    #:add-function-btree
-   #:find-function-btree))
+   #:find-function-btree
+   #:heap-btree))
 
 (in-package :planks.btree)
 

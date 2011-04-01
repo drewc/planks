@@ -7,79 +7,91 @@
 (defparameter *btree-file-root* (ensure-directories-exist #P"/tmp/pp-btree/"))
 
 (defclass file-btree-node (btree-node)
-  ((self-pointer :accessor btree-node-self-pointer :initarg :pointer)))
-
-(defclass pointer ()
-  ((address :accessor pointer-address :initarg :address)
-   (btree-file-path :accessor pointer-btree-file-path :initarg :pathname)))
+  ((address :accessor btree-node-address :initarg :address)))
 
 (defvar *btree-stream*)
 
-(defconstant +btree-node-marker+ #xC1)
-
-(defgeneric maybe-follow-pointer (possible-pointer))
-
-(defmethod maybe-follow-pointer (object) object)
-(defmethod maybe-follow-pointer ((pointer pointer))
-  (with-open-file (stream (pointer-btree-file-path pointer)
-			  :if-does-not-exist :error	
-			  :direction :input
-			  :element-type '(unsigned-byte 8))
-    (file-position stream (pointer-address pointer))
-    (rs::deserialize stream)))
-
-(defun btree-node-file-position (node)
-  (pointer-address 
-   (btree-node-self-pointer 
-    (maybe-follow-pointer node))))
-
-(defmethod btree-root ((btree file-btree))
-  (maybe-follow-pointer (call-next-method)))
-
-(defmethod update-node-for-insert (btree (pointer pointer) binding-key key value leaf-p)
-  (call-next-method btree (maybe-follow-pointer pointer) binding-key key value leaf-p))
-
-(defmethod btree-node-min-depth ((node pointer))
-  (btree-node-min-depth (maybe-follow-pointer node)))
-
-(defmethod btree-node-max-depth ((node pointer))
-  (btree-node-max-depth (maybe-follow-pointer node)))
-
-(defmethod largest-key-in-node ((pointer pointer))
-  (largest-key-in-node (maybe-follow-pointer pointer)))
-
-(defmethod node-search (btree (node pointer) key errorp default-value)
-  (node-search btree (maybe-follow-pointer node) key errorp default-value))
-
-(defmethod map-btree-node (function (pointer pointer))
-  (call-next-method function (maybe-follow-pointer pointer)))
-
-(defmethod map-btree-keys-for-node :around (btree (pointer pointer) function min max include-min include-max order)
-  (call-next-method btree (maybe-follow-pointer pointer) function min max include-min include-max order))
-          
-(defmethod rs::serialize ((object pointer) stream)
-  (rs::serialize-marker +btree-node-marker+ stream)
-  (rs::serialize-standard-object object stream))
-
-(defmethod rs::serialize ((object file-btree-node) stream)
-  (rs::serialize (btree-node-self-pointer object) stream))
-
-(defmethod rs::deserialize-contents ((marker (eql +btree-node-marker+)) stream)
-  (rs::deserialize stream))
+(defun load-btree-node (btree address)
+  (typecase address
+    (file-btree-node address)
+    (integer 
+     (alexandria:with-input-from-file (s (btree-pathname btree) 
+					 :element-type '(unsigned-byte 8))
+       (file-position s address) 
+       (let ((instance (allocate-instance (find-class (btree-node-class btree)))))
+	 (prog1 instance
+	   (setf (btree-node-address instance) address
+		 (btree-node-leaf-p instance) (rs::deserialize s)
+		 (btree-node-index instance)
+		 (let ((size (rs::deserialize s)))
+		   (loop 
+		      :with vector = (make-array size) for n from 0 to (1- size)
+		      :do (setf (aref vector n) (cons (rs::deserialize s) (rs::deserialize s)))
+		      :finally (return vector))))))))))
+  
 
 (defmethod persist (node &key (stream *btree-stream*))
   (declare (special %btree%))
   (force-output stream)
-  (assert (not (slot-boundp node 'self-pointer)) ()
+  (assert (not (slot-boundp node 'address)) ()
 	  "Node is already persisted, fail!")
-  (let* ((eof (file-length stream))
-	 (pointer (make-instance 'pointer 
-				 :pathname (btree-pathname %btree%)
-				 :address eof)))
-    (setf (btree-node-self-pointer node) pointer)
+  (let* ((eof (file-length stream)))
+    (setf (btree-node-address node) eof)
     (file-position stream eof)
-    (rs::serialize-standard-object node stream)
+    (rs::serialize (btree-node-leaf-p node) stream)
+    (rs::serialize (length (btree-node-index node)) stream)
+    (loop :for (key . value) :across (btree-node-index node) 
+       :do 
+       (rs::serialize key stream)
+       (rs::serialize value stream))       		   
     (force-output stream)))
+
+(defmethod rs::serialize ((object file-btree-node) stream)
+  (rs::serialize (btree-node-address object) stream))
+
+(defun btree-node-file-position (node)
+  (typecase node 
+    (integer node)
+    (file-btree-node (btree-node-address node))))
+
+(defmethod btree-root ((btree file-btree))
+  (let ((root (call-next-method)))
+    (when root 
+      (load-btree-node btree root))))
+	
+
+(defmethod update-node-for-insert (btree (pointer integer) binding-key key value (leaf-p null))
+  (call-next-method btree (load-btree-node btree pointer) binding-key key value leaf-p))
+
+(defmethod btree-depths :around ((btree file-btree))
+  (let ((%btree% btree))
+    (declare (special %btree%))
+  (if (slot-value btree 'root)
+      (values (btree-node-min-depth (btree-root btree))
+              (btree-node-max-depth (btree-root btree)))
+    (values 0 0))))
+
+(defmethod btree-node-min-depth ((node integer))
+  (declare (special %btree%))
+  (btree-node-min-depth (load-btree-node %btree%  node)))
+
+(defmethod btree-node-max-depth ((node integer))
+  (declare (special %btree%))
+  (btree-node-max-depth (load-btree-node %btree% node)))
+
+(defmethod largest-key-in-node ((pointer integer))
+  (declare (special %btree%))
+  (largest-key-in-node (load-btree-node %btree% pointer)))
+
+(defmethod node-search (btree (node integer) key errorp default-value)
+  (node-search btree (load-btree-node btree node) key errorp default-value))
+
+(defmethod map-btree-node (btree function (pointer integer))
+  (call-next-method function (load-btree-node btree pointer)))
+
+(defmethod map-btree-keys-for-node :around (btree (pointer integer) function min max include-min include-max order)
+  (call-next-method btree (load-btree-node btree pointer) function min max include-min include-max order))
+          
 
 (defmethod update-node :around ((node file-btree-node) &key &allow-other-keys)
   (let ((new-node (call-next-method)))
@@ -91,10 +103,10 @@
     (declare (special %btree%))
     (let ((new-btree (call-next-method)))
       (prog1 new-btree 
-	(setf (btree-root new-btree) 
-	      (and (btree-root new-btree) (btree-node-self-pointer (btree-root new-btree))))
 	(setf (btree-pathname new-btree)
-	      (btree-pathname btree))))))
+	      (btree-pathname btree)
+	      (btree-root btree)
+	      (btree-root btree))))))
 
 (defclass single-file-btree (file-btree)
   ((footer :accessor btree-file-footer)
@@ -121,6 +133,7 @@
    (btree-file-footer-class btree)
    :action action
    :root-node-position (when (btree-root btree)
+			 
 			 (btree-node-file-position 
 			  (btree-root btree)))
    :version (if old-footer (1+ (btree-file-footer-version old-footer)) 0)
@@ -132,36 +145,41 @@
     (rs::serialize header buffer)
     (ironclad:digest-sequence :md5 (rs::contents buffer))))
 
-(defvar *footer-marker* (babel:string-to-octets "Btree Footer : v0.1"))
-(defvar *footer-length* 1024)
+(defvar +footer-marker+ rs::+ILLEGAL-MARKER+)
 
 (defun write-file-footer (stream footer)
-  (let* ((rs::*default-buffer-size* (- *footer-length* (length *footer-marker*)))
-	 (buffer (make-instance 'rs::serialization-buffer))
-	 (checksum (object-checksum footer)))
-    (rs::serialize  footer buffer)
-    (rs::serialize checksum buffer)
-    (setf (fill-pointer (rs::contents buffer)) rs::*default-buffer-size*)
+  (let* ((checksum (object-checksum footer)))
     (force-output stream)
     (file-position stream (file-length stream))
-    (write-sequence *footer-marker* stream)
-    (rs::save-buffer buffer stream)
-    (force-output stream)
-    (write-sequence *footer-marker* stream)
-    (rs::save-buffer buffer stream)
-    (force-output stream)))
+    (dotimes (n 2)
+      (write-byte +footer-marker+ stream)
+      (rs::serialize footer stream)
+      (rs::serialize checksum stream)))
+  (force-output stream))
 
-(defun read-file-footer (stream &optional (file-position (- (file-length stream) *footer-length*)))
-  (when file-position (file-position stream file-position))
-  (let ((marker (make-array (length *footer-marker*) :element-type '(unsigned-byte 8))))
-    (read-sequence marker stream)
-    (when (equalp marker *footer-marker*) 
-      (let ((buffer (make-instance 'rs::serialization-buffer)))
-	(rs::load-buffer buffer stream (- *footer-length* (length *footer-marker*)))
-	(let ((footer (rs::deserialize buffer))
-	      (checksum (rs::deserialize buffer)))
-	  (when (equalp checksum (object-checksum footer))
-	    footer))))))
+(defun read-file-footer (stream &key (count 256) (start (- (file-length stream) count)) )
+  (file-position stream (setf start (if (>= start 0)
+					start
+					0)))
+
+  (let ((footer (loop 
+		   :for n from 1 to count
+		   :for byte = (read-byte stream nil)
+		   :while byte
+		   :when (eql byte +footer-marker+)
+		   :do 
+		   (let ((pos (file-position stream))	  
+			 (footer (ignore-errors (rs::deserialize stream))))
+		      (if  footer
+			   (let ((checksum (ignore-errors (rs::deserialize stream))))
+			     (if  (and checksum (equalp checksum (object-checksum footer)))
+				  (return footer)
+				  (file-position stream pos)))
+			   (file-position stream pos))))))
+    (or footer 
+	(if (not (zerop start))
+	    (read-file-footer stream :start (- start count) :count count)
+	    (error "FATAL: Can't read btree footer")))))
 
 (defun make-btree-lock (btree)
    (bordeaux-threads:make-lock (format nil "BTREE lock for ~A" (btree-pathname btree))))
@@ -209,6 +227,8 @@
 					 :element-type '(unsigned-byte 8))
 			(let ((btree (read-btree-from-file-stream s)))
 			  (setf (btree-lock btree) (make-btree-lock btree))
+			  (setf (btree-root btree) (load-btree-node btree (root-node-file-position (btree-file-footer btree))))
+				
 			  btree)))))))
 
 (defun close-btree (path)
