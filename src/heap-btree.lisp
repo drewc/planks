@@ -74,15 +74,23 @@
 	(setf (slot-value new-tree 'heap-start) start)
 	(setf (slot-value new-tree 'free-space-start) free)))))
 
-(defmethod btree-search ((btree heap-btree) key &key address-only)
+(defmethod btree-search ((btree heap-btree) key &key address-only &allow-other-keys)
   (let ((address (call-next-method)))
     (if address-only address (if (btree-unique-keys-p btree)
 				 (find-heap-object btree address)
 				 (mapcar (lambda (a) (find-heap-object btree a)) address)))))
 
 
-	 
-      
+(defmethod map-btree :around ((bt heap-btree) fn &rest args &key address-only &allow-other-keys)
+  (let ((fun (if address-only 
+		 fn 
+		 (if (btree-unique-keys-p bt)						  
+		     (lambda (k address) 
+		       (funcall fn k (find-heap-object bt address)))
+		     (lambda (k address) 
+		       (funcall fn k (mapcar (lambda (a) (find-heap-object bt a)) address)))))))	       
+    (apply #'call-next-method bt fun args)))
+  
       
       
       

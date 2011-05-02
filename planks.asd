@@ -5,6 +5,8 @@
   :components ((:module :src
 		:components ((:file "btree-protocol")
 			     (:file "btree")
+			     (:file "btree-utils")
+			     (:file "btree-search")
 			     (:file "map-btree")
 			     (:file "file-btree")
 			     (:file "heap-btree")
@@ -17,6 +19,7 @@
   :depends-on (:rucksack
 	       :ironclad
 	       :bordeaux-threads
+	       :trivial-garbage
 	       :babel
 	       :closer-mop))
 

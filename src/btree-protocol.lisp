@@ -29,7 +29,8 @@
    #:add-multi-btree
    #:add-function-btree
    #:find-function-btree
-   #:heap-btree))
+   #:heap-btree
+   #:btree-file-size))
 
 (in-package :planks.btree)
 

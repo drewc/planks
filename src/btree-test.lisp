@@ -7,6 +7,8 @@
 
 (defvar *path* "/tmp/btree")
 
+
+
 (defun test-file-btree-insert (&key (path *path*))
   (let ((bt (make-btree path :if-exists :supersede)))
     (assert (null (btree-search bt 1 :errorp nil)))
@@ -80,6 +82,22 @@
 	      :class 'heap-btree)
   (symbol-macrolet ((bt (find-btree *path*)))
     (loop for n to 115000 do  (btree-insert bt n n))
+    (format t "File Size : ~A" (float (/ (btree-file-size bt) (* 1024 1024))))
+    bt))
+
+(defun test-heap-btree-more ()
+  (make-btree *path*
+	      :if-exists :supersede
+	      :max-node-size 10
+	      :class 'heap-btree
+	      :key< 'string<
+	      :key= 'equalp)
+  (symbol-macrolet ((bt (find-btree *path*)))
+    (loop for n to 115000 do  
+	 (btree-insert bt (uuid:print-bytes nil (uuid:make-v1-uuid)) n)
+	 (close-btree bt))
+	 
+    (format t "File Size : ~A" (float (/ (btree-file-size bt) (* 1024 1024))))
     bt))
     
   

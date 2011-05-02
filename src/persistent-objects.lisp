@@ -9,14 +9,13 @@
 (defclass persistent-standard-object ()
   ((slot-btree :accessor persistent-standard-object-slot-btree)))
     
-
 (defclass persistent-standard-object-slot-btree (nested-btree)
   ((class-name :accessor persistent-standard-object-slot-btree-class-name
 	       :initarg :class-name))
   (:metaclass btree-class)
     (:default-initargs
    :key< 'string=
-   :key= 'eql
+   :key= 'string=
    :key-type 'symbol))
 
 (defmethod slot-definition-persistentp (slot)

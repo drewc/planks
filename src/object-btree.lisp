@@ -23,10 +23,11 @@
       (let ((value (funcall value-thunk)))
 	(apply #'call-next-method btree (list* :value value (alexandria:remove-from-plist args :value-thunk))))
       (call-next-method)))
-    
+
 (defclass nested-btree (file-btree)
-  ((pathname :initarg :btree))
-  (:metaclass btree-class))
+  ((pathname :initarg :btree)
+   (key :initarg key)))
+
 
 (defmethod btree-pathname :around  ((btree nested-btree))
   (declare (special %btree-path%))
@@ -43,7 +44,7 @@
 		(setf value 
 		      (let ((value (call-next-method)))
 			(prog1 value
-			   (setf (btree-object-id value)
+			  #+nil (setf (btree-object-id value)
 				 (btree-object-id btree))))))))
 	(update-btree (find-btree (btree-pathname btree))
 		      :key (btree-object-id btree)
