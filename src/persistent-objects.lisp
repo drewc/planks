@@ -8,7 +8,7 @@
 
 (defclass persistent-standard-object ()
   ((slot-btree :accessor persistent-standard-object-slot-btree)))
-    
+
 (defclass persistent-standard-object-slot-btree (nested-btree)
   ((class-name :accessor persistent-standard-object-slot-btree-class-name
 	       :initarg :class-name))
@@ -26,7 +26,7 @@
     (prog1 new-btree
       (setf (persistent-standard-object-slot-btree-class-name new-btree)
 	    (persistent-standard-object-slot-btree-class-name btree)))))
-	    
+
 
 (defconstant +persistent-standard-object-marker+ #xC2)
 
@@ -39,7 +39,7 @@
 
 (defmethod rs::deserialize-contents ((marker (eql +persistent-standard-object-marker+)) stream)
   (let* ((btree (rs::deserialize stream))
-	 (instance (allocate-instance (find-class 
+	 (instance (allocate-instance (find-class
 				       (persistent-standard-object-slot-btree-class-name btree)))))
     (setf (persistent-standard-object-slot-btree instance)
 	  btree)
@@ -49,17 +49,17 @@
   (btree-class-pathname (class-of object)))
 
 (defclass persistent-standard-class-slot-definition ()
-  ((persistentp :accessor slot-definition-persistentp 
+  ((persistentp :accessor slot-definition-persistentp
 		:initarg :persistent :initform t)))
 
-(defclass persistent-standard-class-direct-slot-definition 
-    (persistent-standard-class-slot-definition 
-     closer-mop:standard-direct-slot-definition) 
+(defclass persistent-standard-class-direct-slot-definition
+    (persistent-standard-class-slot-definition
+     closer-mop:standard-direct-slot-definition)
   ())
 
-(defclass persistent-standard-class-effective-slot-definition 
-    (persistent-standard-class-slot-definition 
-     closer-mop:standard-effective-slot-definition) 
+(defclass persistent-standard-class-effective-slot-definition
+    (persistent-standard-class-slot-definition
+     closer-mop:standard-effective-slot-definition)
   ())
 
 (defmethod closer-mop:direct-slot-definition-class
@@ -84,36 +84,36 @@
 
 (defmethod shared-initialize :before ((object persistent-standard-object) slots &rest initargs)
   (declare (ignore slots initargs))
-  (setf (persistent-standard-object-slot-btree object) 
-	(make-instance 'persistent-standard-object-slot-btree 
+  (setf (persistent-standard-object-slot-btree object)
+	(make-instance 'persistent-standard-object-slot-btree
 		       :btree (btree-pathname object)
 		       :class-name (class-name (class-of object)))))
 
 (defmethod closer-mop:slot-value-using-class ((class persistent-standard-class)
 					      (object persistent-standard-object)
 					      (slotd persistent-standard-class-effective-slot-definition))
-  (btree-search (persistent-standard-object-slot-btree object) 
+  (btree-search (persistent-standard-object-slot-btree object)
 		(closer-mop:slot-definition-name slotd)))
 
-(defmethod (setf closer-mop:slot-value-using-class) (value 
+(defmethod (setf closer-mop:slot-value-using-class) (value
 						     (class persistent-standard-class)
 						     (object persistent-standard-object)
 						     (slotd persistent-standard-class-effective-slot-definition))
-  
+
   (prog1 value
     (setf (persistent-standard-object-slot-btree object)
-	  (btree-insert (persistent-standard-object-slot-btree object) 
+	  (btree-insert (persistent-standard-object-slot-btree object)
 		 	(closer-mop:slot-definition-name slotd)
 			 value))))
 
-(defmethod closer-mop:slot-boundp-using-class 
+(defmethod closer-mop:slot-boundp-using-class
     ((class persistent-standard-class)
      (object persistent-standard-object)
      (slotd persistent-standard-class-effective-slot-definition))
-  (btree-search (persistent-standard-object-slot-btree object) 
+  (btree-search (persistent-standard-object-slot-btree object)
 		(closer-mop:slot-definition-name slotd)
 		:errorp nil))
-  
+
 (defmethod initialize-instance :around
   ((class persistent-standard-class) &rest initargs
    &key direct-superclasses)

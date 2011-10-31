@@ -9,7 +9,7 @@
    (let ((key< (slot-value btree 'key<))
 	 (key-key (btree-key-key btree)))
      (lambda (key1 key2)
-       (and 
+       (and
 	    (funcall key<
 		     (funcall key-key key1)
 		     (funcall key-key key2))))))
@@ -63,7 +63,7 @@
        0
      (loop for i below (btree-node-binding-count node)
 	   for binding = (btree-node-binding node i)
-	   maximize (1+ (btree-node-max-depth (btree-node-binding-value 
+	   maximize (1+ (btree-node-max-depth (btree-node-binding-value
 					 node binding))))))
 
  (defmethod btree-node-min-depth ((node btree-node))
@@ -71,7 +71,7 @@
        0
      (loop for i below (btree-node-binding-count node)
 	   for binding = (btree-node-binding node i)
-	   minimize (1+ (btree-node-min-depth (btree-node-binding-value 
+	   minimize (1+ (btree-node-min-depth (btree-node-binding-value
 					       node binding))))))
 
  (defmethod btree-depths ((btree btree))

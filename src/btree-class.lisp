@@ -16,18 +16,18 @@
 (defmethod btree-pathname (object)
   (btree-class-pathname (class-of object)))
 
-(defmethod shared-initialize :around 
-    ((object btree-object) slots &rest initargs 
+(defmethod shared-initialize :around
+    ((object btree-object) slots &rest initargs
      &key (btree (btree-pathname object)))
   (declare (ignore slots initargs))
   (let* ((parent (find-btree btree))
 	 (lock (btree-lock parent)))
     (bt:with-recursive-lock-held (lock)
 	(let ((id (btree-footer-next-id (btree-file-footer parent))))
-	  (setf (btree-object-id object) 
+	  (setf (btree-object-id object)
 		id)
 	  (update-btree parent :key id :value (call-next-method) :action :make-instance)))))
-  
+
 (defmethod initialize-instance :around
   ((class btree-class) &rest initargs
    &key direct-superclasses)

@@ -1,6 +1,6 @@
 (in-package :planks.btree)
 
-(defclass object-storage-btree (single-file-btree) 
+(defclass object-storage-btree (single-file-btree)
   ()
   (:default-initargs :footer-class 'object-storage-footer))
 
@@ -11,15 +11,15 @@
 
 (defmethod make-btree-footer :around ((btree object-storage-btree) old-footer &key action)
   (let ((footer (call-next-method)))
-    (prog1 footer 
+    (prog1 footer
       (setf (btree-footer-next-id footer)
 	    (if (eql :make-instance action)
 		(if old-footer (1+ (btree-footer-next-id old-footer)) 0)
 		(if old-footer (btree-footer-next-id old-footer) 0))))))
 
-(defmethod update-btree ((btree object-storage-btree) &rest args 
+(defmethod update-btree ((btree object-storage-btree) &rest args
 			 &key value-thunk &allow-other-keys)
-  (if value-thunk 
+  (if value-thunk
       (let ((value (funcall value-thunk)))
 	(apply #'call-next-method btree (list* :value value (alexandria:remove-from-plist args :value-thunk))))
       (call-next-method)))
@@ -39,9 +39,9 @@
     (declare (special %btree-path%))
     (bt:with-recursive-lock-held ((btree-lock parent))
       (let* ((value)
-	     (value-thunk 
-	      (lambda () 
-		(setf value 
+	     (value-thunk
+	      (lambda ()
+		(setf value
 		      (let ((value (call-next-method)))
 			(prog1 value
 			  #+nil (setf (btree-object-id value)

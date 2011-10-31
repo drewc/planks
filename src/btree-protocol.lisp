@@ -79,7 +79,7 @@ ORDER is either :ASCENDING (default) or :DESCENDING."))
 
 
 (defgeneric update-btree  (btree &key key value &allow-other-keys)
-  (:documentation 
+  (:documentation
    "This is the function that implements the functional b+tree. It is not meant to be called by users, but is specialized when extending"))
 
 (define-condition btree-error (error)
