@@ -25,7 +25,7 @@
   (:method (btree (node null) function
             min max include-min include-max
             order)
-    nil)                         
+    nil)
   (:method (btree node function
             min max include-min include-max
             order)

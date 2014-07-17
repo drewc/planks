@@ -1,6 +1,6 @@
 (in-package :cl)
 
-(defpackage :planks.btree-test 
+(defpackage :planks.btree-test
   (:use :cl :planks.btree))
 
 (in-package :planks.btree-test)
@@ -26,7 +26,7 @@
 (defun test-btree-balance (&key (path *path*))
   (let ((bt (make-btree path :if-exists :supersede :max-node-size 5)))
     (assert (null (btree-search bt 1 :errorp nil)))
-    (loop for i upto 1234 for b = (btree-insert bt i i) then (btree-insert b i i) 
+    (loop for i upto 1234 for b = (btree-insert bt i i) then (btree-insert b i i)
        :finally (assert (planks.btree::btree-balanced-p b)))))
 
 (defun reverse-map (k v)
@@ -41,18 +41,18 @@
   (list (cons v (length v))))
 
 (defun test-multi-btree-existing-data-insert (&key (path *path*))
-  (let ((bt (make-btree path 
+  (let ((bt (make-btree path
 			:if-exists :supersede
 			:class 'multi-btree))
-	(data (remove-duplicates 
-	       (loop 
-		  for i upto 1234 
+	(data (remove-duplicates
+	       (loop
+		  for i upto 1234
 		  for r = (format nil "~R" i)
 		  :collect (cons i r))
 	       :key #'car)))
-    (loop  
-       for (i . r) in data	 
-       for b = (btree-insert bt i r) 
+    (loop
+       for (i . r) in data
+       for b = (btree-insert bt i r)
        then (btree-insert b i r))
 
     (add-function-btree (find-btree path) 'reverse-map :key= 'equal :key< 'string<)
@@ -62,16 +62,16 @@
     (find-btree path)))
 
 (defun test-multi-btree-existing-data (&optional (bt (test-multi-btree-existing-data-insert)))
-  
-  (map-btree (find-function-btree bt 'reverse-map) 
+
+  (map-btree (find-function-btree bt 'reverse-map)
 	     (lambda (k v)
 	       (assert (equal k (btree-search bt v)))))
 
-  (map-btree (find-function-btree bt 'add-one-to-key) 
+  (map-btree (find-function-btree bt 'add-one-to-key)
 	     (lambda (k v)
 	       (assert (equal (1+ k) v))))
 
-  (map-btree (find-function-btree bt 'length-of-value) 
+  (map-btree (find-function-btree bt 'length-of-value)
 	     (lambda (k v)
 	       (assert (equal (length k) v)))))
 
@@ -93,23 +93,23 @@
 	      :key< 'string<
 	      :key= 'equalp)
   (symbol-macrolet ((bt (find-btree *path*)))
-    (loop for n to 115000 do  
+    (loop for n to 115000 do
 	 (btree-insert bt (uuid:print-bytes nil (uuid:make-v1-uuid)) n)
 	 (close-btree bt))
-	 
+
     (format t "File Size : ~A" (float (/ (btree-file-size bt) (* 1024 1024))))
     bt))
-    
-  
-	       
-(progn 
+
+
+
+(progn
   (test-file-btree-insert)
   (test-btree-balance)
   (test-multi-btree-existing-data))
-    
 
 
 
-       
-  
+
+
+
 

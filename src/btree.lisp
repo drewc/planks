@@ -40,7 +40,7 @@ of keys per btree node.")
       (SETF (SLOT-VALUE NEW 'KEY<) (SLOT-VALUE btree 'KEY<)
 	    (SLOT-VALUE NEW 'KEY=) (SLOT-VALUE btree 'KEY=)
 	    (SLOT-VALUE NEW 'KEY-KEY) (SLOT-VALUE btree 'KEY-KEY)
-	    (SLOT-VALUE NEW 'VALUE-KEY) (SLOT-VALUE btree 'VALUE-KEY)	    
+	    (SLOT-VALUE NEW 'VALUE-KEY) (SLOT-VALUE btree 'VALUE-KEY)
 	    (SLOT-VALUE NEW 'VALUE=) (SLOT-VALUE btree 'VALUE=)
 	    (SLOT-VALUE NEW 'NODE-CLASS) (SLOT-VALUE btree 'NODE-CLASS)
 	    (SLOT-VALUE NEW 'MAX-NODE-SIZE) (SLOT-VALUE btree 'MAX-NODE-SIZE)
@@ -53,19 +53,19 @@ of keys per btree node.")
   (if (and (null key) (null value))
       (%update-btree btree)
       (let ((root (btree-root btree)))
-	(%update-btree 
-	 btree 
-	 :root (cond 
-		 ((not root) 
+	(%update-btree
+	 btree
+	 :root (cond
+		 ((not root)
 		  (make-root-node btree key value))
 		 ((node-almost-full-p btree root)
-		  (update-node 
-		   root :index (split-binding-node 
+		  (update-node
+		   root :index (split-binding-node
 				btree root key value nil)))
-		 (t	 
-		  (update-node 
-		   root :index (update-index-for-insert 
-				btree (btree-node-index root) 
+		 (t
+		  (update-node
+		   root :index (update-index-for-insert
+				btree (btree-node-index root)
 				key value (btree-node-leaf-p root)))))))))
 
 (defclass btree-node ()
@@ -84,18 +84,18 @@ of keys per btree node.")
     (format stream "~A" (btree-node-index object))))
 
 (defmethod update-node (node &key (index (btree-node-index node))
-			(leaf-p (btree-node-leaf-p node)))		    
+			(leaf-p (btree-node-leaf-p node)))
   (make-instance (class-of node) :index index :leaf-p leaf-p))
 
 (defmethod make-root-node (btree key val)
-  (let* ((left (update-node (make-instance (btree-node-class btree) 
-					   :leaf-p t 
-					   :index (vector (funcall 
+  (let* ((left (update-node (make-instance (btree-node-class btree)
+					   :leaf-p t
+					   :index (vector (funcall
 							   (if (btree-unique-keys-p btree)
 							       'cons
 							       'list)
 							   key val))))))
-    (update-node (make-instance (btree-node-class btree) 
+    (update-node (make-instance (btree-node-class btree)
 				:index (vector (cons key left))
 				:leaf-p nil))))
 
@@ -107,7 +107,7 @@ of keys per btree node.")
   ;; Find the first binding with a key >= the given key and return
   ;; the corresponding subnode.
   ;; DO: We should probably use binary search for this.
-  (loop 
+  (loop
      :for (bkey . value) :across index
      :for i from 0
      :when (or (= (1+ i) (length index))
@@ -126,7 +126,7 @@ of keys per btree node.")
 (defmethod btree-node-binding-value (node binding)
   (cdr binding))
 
- 
+
 (defmethod largest-key-in-node (node)
   (let ((index (btree-node-index node))
 	(leaf-p (btree-node-leaf-p node)))
@@ -137,32 +137,32 @@ of keys per btree node.")
 
 
 (defun update-bnode (btree node key value)
-  (update-node 
-   node :index (update-index-for-insert 
-		btree (btree-node-index node) 
+  (update-node
+   node :index (update-index-for-insert
+		btree (btree-node-index node)
 		key value (btree-node-leaf-p node))))
 
 (defun update-index-for-insert (btree index key value leaf-p)
   (cond ((eql 0 (length index))
 	 (vector (cons key value)))
-	(t 
+	(t
 	 (let* ((pos (find-key-position-in-index btree index key))
 		(binding (aref index pos))
-		(left-index (unless (eql 0 pos) 
+		(left-index (unless (eql 0 pos)
 			      (make-array pos :displaced-to index)))
-		(right-index (unless (<= (length index) (1+ pos)) 
+		(right-index (unless (<= (length index) (1+ pos))
 			       (make-array (1- (- (length index) pos))
 					   :displaced-to index
 					   :displaced-index-offset (1+ pos)))))
-	   (concatenate 'vector 
-			left-index 
+	   (concatenate 'vector
+			left-index
 			(update-binding-for-insert btree binding key value leaf-p)
 			right-index)))))
 
 (defmethod update-node-for-insert (btree node binding-key key value leaf-p)
   (if (and (not leaf-p) (node-almost-full-p btree node))
       (split-binding-node btree node key value (btree-node-leaf-p node))
-      (if leaf-p 
+      (if leaf-p
 	  (if (funcall (btree-key= btree) binding-key key)
 	      ;; replacing existing binding
 	      (vector (cons key (if (btree-unique-keys-p btree)
@@ -172,9 +172,9 @@ of keys per btree node.")
 				    )))
 	      ;;new key
 	      (sort (vector (funcall (if (btree-unique-keys-p btree)
-					 'cons 
+					 'cons
 					 'list)
-				     key value) 
+				     key value)
 			    (cons binding-key node))
 		    (btree-key< btree) :key #'car))
 	  (vector (cons binding-key (update-bnode btree node key value))))))
@@ -192,11 +192,11 @@ of keys per btree node.")
 	 (sub-index (if (<= (1+ node-pos) (length split-left-index))
 			split-left-index
 			split-right-index))
-	 (left-node (update-node 
+	 (left-node (update-node
 		     node :index (if (eql split-left-index sub-index)
 				     (update-index-for-insert btree split-left-index key value leaf-p)
 				     split-left-index)))
-	 (right-node (update-node 
+	 (right-node (update-node
 		      node :index (if (eql split-right-index sub-index)
 				      (update-index-for-insert btree split-right-index key value leaf-p)
 				      split-right-index))))
